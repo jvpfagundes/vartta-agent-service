@@ -1,0 +1,16 @@
+{
+ "project_type": "Python 3.14 FastAPI + LangGraph service (hexagonal: domain/application/infrastructure)",
+ "language": "Python",
+ "build_system": "pyproject.toml (hatchling), .venv",
+ "test_framework": "unittest (no pytest), tests/ dir",
+ "build_command": ".venv/bin/python -c 'import src.infrastructure.entrypoints.app'",
+ "test_command": ".venv/bin/python -m unittest discover -s tests -t . -v",
+ "verification_instructions": "run full unittest suite; no Postgres available",
+ "snapshot_or_generated_files": null,
+ "setup_instructions": "psycopg_pool 3.3.1 is already installed in .venv; if not, .venv/bin/pip install 'psycopg-pool==3.3.1'",
+ "environment_constraints": "no Postgres, possibly no network, not a git repo",
+ "contribution_requirements": "none",
+ "key_patterns": "lifespan in src/infrastructure/entrypoints/app.py uses AsyncPostgresSaver.from_conn_string (single connection). run_whatsapp_agent.py _load_baseline_ids wraps exceptions in AgentError.",
+ "relevant_files": ["src/infrastructure/entrypoints/app.py","src/application/use_cases/run_whatsapp_agent.py","src/infrastructure/adapters/db/connection.py","src/infrastructure/config/settings.py","pyproject.toml","tests/test_run_whatsapp_agent.py"],
+ "directory_structure": "src/{domain,application,infrastructure}, tests/"
+}

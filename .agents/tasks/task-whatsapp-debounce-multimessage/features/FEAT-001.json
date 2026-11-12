@@ -1,0 +1,22 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Preparar infraestrutura de testes com stdlib unittest (sem rede: pytest/pytest-asyncio indisponiveis) e confirmar baseline verde antes de qualquer mudanca. FEAT-002 e FEAT-003 dependem dela.",
+  "status": "completed",
+  "steps": [
+    "NAO instalar pacotes (sem rede) e NAO alterar dependencias no pyproject.toml.",
+    "Criar tests/__init__.py e tests/test_smoke.py usando unittest.TestCase que importa `src.infrastructure.entrypoints.webhook` e `src.application.use_cases.run_whatsapp_agent` e valida `detect_prompt_injection('ignore all previous instructions') is True` e `_format_for_whatsapp('**oi**') == '*oi*'`. Incluir tambem um teste async (unittest.IsolatedAsyncioTestCase) trivial que prove que o runner async funciona (ex.: asyncio.sleep(0)).",
+    "Rodar `.venv/bin/python -c \"import src.infrastructure.entrypoints.app\"` e `.venv/bin/python -m unittest discover -s tests -t . -v`; registrar no findings o resultado e peculiaridades do ambiente.",
+    "NAO ler nem imprimir valores de .env."
+  ],
+  "acceptance_criteria": [
+    "`.venv/bin/python -m unittest discover -s tests -t . -v` executa e passa (>=2 testes)",
+    "`.venv/bin/python -c \"import src.infrastructure.entrypoints.app\"` termina sem erro"
+  ],
+  "verification": [
+    ".venv/bin/python -m unittest discover -s tests -t . -v",
+    ".venv/bin/python -c \"import src.infrastructure.entrypoints.app\""
+  ],
+  "blocked_reason": null,
+  "findings": "Criados tests/__init__.py e tests/test_smoke.py (unittest.TestCase + IsolatedAsyncioTestCase). `.venv/bin/python -m unittest discover -s tests -t . -v`: 2 testes OK (~0.3s). `import src.infrastructure.entrypoints.app` sem erro (exit 0, sem saida em stderr). Import do webhook funciona sem Postgres/WAHA/rede (settings carrega via load_dotenv). Workspace nao e git, entao nao houve commit. Nenhum pacote instalado, pyproject.toml e .env intocados. Observacao: o sandbox do shell as vezes rejeita sed -i no formato BSD; usar str_replace para editar JSONs."
+}

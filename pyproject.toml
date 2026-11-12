@@ -1,0 +1,28 @@
+[project]
+name = "agent-service"
+version = "0.1.0"
+description = "Vartta AI Agent Microservice — LangGraph + FastAPI"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "langgraph>=0.4",
+    "langchain>=0.3",
+    "langchain-openai>=0.3",
+    "langchain-anthropic>=0.3",
+    "langchain-google-genai",
+    "httpx>=0.28",
+    "asyncpg>=0.30",
+    "pydantic-settings>=2.7",
+    "python-dotenv>=1.1",
+    "langgraph-checkpoint-postgres>=2.0",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool==3.3.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

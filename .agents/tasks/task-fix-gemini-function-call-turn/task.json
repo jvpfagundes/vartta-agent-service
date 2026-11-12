@@ -1,0 +1,15 @@
+{
+  "task_id": "task-fix-gemini-function-call-turn",
+  "task_description": "Corrigir erro Gemini 400 'function call turn comes immediately after a user turn or after a function response turn' no no 'agent' do grafo WhatsApp: sanear a lista de mensagens enviada ao LLM (janela [-16:] cortando no meio de tool calls e historico persistido inconsistente) e cobrir com testes.",
+  "status": "completed",
+  "feature_order": [
+    "FEAT-001"
+  ],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "summary": "Smoke de import ok; 114 testes passando. Testes com grafo real (InMemorySaver + fake LLM validador Gemini) falham com a janela antiga [-16:]. Review v1 APPROVED; pontos nao bloqueantes tratados (warning so quando ha remocao, teste de ToolMessage orfa no checkpoint, aviso de overflow de janela)."
+  }
+}

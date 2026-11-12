@@ -1,0 +1,22 @@
+{
+  "project_type": "Python FastAPI + LangGraph microservice (atendimento WhatsApp), arquitetura hexagonal",
+  "language": "Python (.venv com 3.14)",
+  "build_system": "hatchling; sem etapa de build real",
+  "test_framework": "stdlib unittest (IsolatedAsyncioTestCase), sem pytest, sem rede, sem Postgres/LLM real. Testes em tests/ na raiz.",
+  "build_command": ".venv/bin/python -c \"import src.infrastructure.entrypoints.app\"",
+  "test_command": ".venv/bin/python -m unittest discover -s tests -t . -v",
+  "verification_instructions": "Smoke de import + suite completa (88 testes existentes + novos) deve passar.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "Usar .venv existente, nada a instalar.",
+  "environment_constraints": "Sem rede, nao e repositorio git. .env tem segredos: NUNCA ler/imprimir. Sem em dash em textos. Comentarios/docstrings em portugues do Brasil. Nao adicionar pytest.",
+  "contribution_requirements": "Type hints modernos, logging.getLogger(__name__), seguir estilo existente.",
+  "key_patterns": "whatsapp_graph.py: no 'agent' (closure em build_whatsapp_agent_graph) monta [SystemMessage, *non_system[-16:]] e chama llm_with_tools.ainvoke. tests/test_cancellation_rollback.py tem GraphHarness com InMemorySaver e grafo falso. run_whatsapp_agent.py: _load_baseline_ids/_find_orphan_tool_call_messages, _rollback, record_delivered_replies usam aupdate_state(as_node='agent') com RemoveMessage.",
+  "relevant_files": [
+    "src/infrastructure/adapters/agent/whatsapp_graph.py",
+    "src/infrastructure/adapters/agent/llm.py",
+    "src/application/use_cases/run_whatsapp_agent.py",
+    "tests/test_cancellation_rollback.py",
+    "tests/test_run_whatsapp_agent.py"
+  ],
+  "directory_structure": "src/{domain,application,infrastructure}; tests/ na raiz"
+}

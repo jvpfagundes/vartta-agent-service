@@ -1,0 +1,1 @@
+{"task_id":"task-checkpointer-connection-pool","task_description":"Fix psycopg 'another command is already in progress' / SSL SYSCALL by using a connection pool for the LangGraph checkpointer","status":"in_progress","feature_order":["FEAT-001"],"blocked_reason":null}

@@ -1,0 +1,27 @@
+{
+  "task_id": "task-whatsapp-debounce-multimessage",
+  "task_description": "Suportar mensagens fragmentadas no WhatsApp (buffer em memoria + debounce de 10s configuravel, cancelando o ciclo em andamento quando chega mensagem nova, com rollback do checkpoint) e permitir que o LLM responda uma lista de mensagens enviadas separadamente de forma humanizada.",
+  "status": "completed",
+  "feature_order": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003"
+  ],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "summary": "Import do app OK; 88 testes unittest passam. Mutacoes (remover task.cancel(), desativar rollback, guards de cancel_requested/pendentes) fazem os testes falharem."
+  },
+  "review": {
+    "iterations": 3,
+    "final_verdict": "APPROVED",
+    "latest": "2026-10-27-102939-review.md",
+    "open_items": [
+      "Rollback com AsyncPostgresSaver nao validado (sem Postgres no ambiente): testar em staging cancelando durante LLM e tool",
+      "Array JSON sem nenhuma string (ex.: [{\"text\":\"Oi\"}]) ainda sai como texto cru (baixa severidade)",
+      "Mensagens recebidas durante o shutdown sao descartadas"
+    ]
+  }
+}

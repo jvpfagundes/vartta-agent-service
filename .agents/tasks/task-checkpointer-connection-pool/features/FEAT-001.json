@@ -1,0 +1,16 @@
+{
+ "id":"FEAT-001","type":"fix",
+ "description":"Replace the single-connection AsyncPostgresSaver with an AsyncConnectionPool so concurrent conversations/cancellations work and dropped SSL connections are recovered. Add short retry on transient psycopg.OperationalError in the checkpointer reads/writes of RunWhatsAppAgentUseCase.",
+ "status":"completed",
+ "steps":[
+  "Add 'psycopg-pool==3.3.1' to pyproject.toml dependencies",
+  "Create src/infrastructure/adapters/db/checkpointer_pool.py with build_checkpointer_pool(dsn, settings) returning AsyncConnectionPool(conninfo, min_size, max_size, open=False, max_idle, max_lifetime, check=AsyncConnectionPool.check_connection, kwargs={autocommit:True, prepare_threshold:0, row_factory:dict_row, keepalives:1, keepalives_idle:30, keepalives_interval:10, keepalives_count:5}); make sizes configurable in settings.py with defaults",
+  "In app.py lifespan: open the pool (await pool.open(wait=True) ), create AsyncPostgresSaver(pool), await setup(), build both graphs; close pool in finally after debouncer shutdown",
+  "In run_whatsapp_agent.py add a small retry helper (2-3 attempts, short backoff, only psycopg.OperationalError / psycopg_pool.PoolTimeout, never swallow asyncio.CancelledError) used by _load_baseline_ids and the aget_state/aupdate_state in rollback/record_delivered_replies; do not retry graph.ainvoke",
+  "Add unit tests with fakes: pool factory receives the required kwargs/check/limits; retry helper retries then succeeds, gives up after N, does not retry other exceptions, propagates CancelledError; _load_baseline_ids succeeds after one OperationalError",
+  "Run the full suite"
+ ],
+ "acceptance_criteria":["Full unittest suite passes","app.py no longer uses from_conn_string","new tests cover pool config and retry"],
+ "verification":[".venv/bin/python -m unittest discover -s tests -t . -v"],
+ "blocked_reason":null,"findings":"Implemented pool (checkpointer_pool.py), settings CHECKPOINTER_POOL_*, lifespan uses AsyncPostgresSaver(pool), _retry_transient (3 attempts) on aget_state/aupdate_state in baseline, rollback, record_delivered_replies. 120 tests pass (6 new in tests/test_checkpointer_resilience.py). Not a git repo so no commit. Real Postgres not verified."
+}
