@@ -8,16 +8,27 @@ from src.infrastructure.entrypoints import webhook
 
 class FakeWahaClient:
     instances: list["FakeWahaClient"] = []
+    fail_chat_ids: set[str] = set()
+    resolved_chat_id: str | None = None
 
     def __init__(self) -> None:
         self.sent: list[str] = []
+        self.sent_calls: list[tuple[str, str, bool]] = []
         FakeWahaClient.instances.append(self)
 
     async def start_typing(self, session_name: str, chat_id: str) -> None:
         return None
 
-    async def send_text(self, session_name: str, chat_id: str, text: str) -> None:
+    async def send_text(
+        self, session_name: str, chat_id: str, text: str, simulate_typing: bool = True
+    ) -> None:
+        if chat_id in FakeWahaClient.fail_chat_ids:
+            raise RuntimeError(f"WAHA rejected chat_id={chat_id}")
         self.sent.append(text)
+        self.sent_calls.append((chat_id, text, simulate_typing))
+
+    async def resolve_chat_id(self, session_name: str, phone_number: str) -> str | None:
+        return FakeWahaClient.resolved_chat_id or f"{phone_number}@c.us"
 
 
 class FakeSchedulaClient:
@@ -82,6 +93,8 @@ def _config(ai_enabled: bool = True, addon_active: bool = True) -> TenantWhatsAp
 class WebhookReminderReplyTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         FakeWahaClient.instances = []
+        FakeWahaClient.fail_chat_ids = set()
+        FakeWahaClient.resolved_chat_id = None
         FakeSchedulaClient.instances = []
         FakeSchedulaClient.outcome = {"result": "no_pending"}
         FakeSchedulaClient.error = None
@@ -187,6 +200,22 @@ class WebhookReminderReplyTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(use_case.messages, ["1"])
         self.assertTrue(all(not c.calls for c in FakeSchedulaClient.instances))
+
+    async def test_send_text_failure_falls_back_to_resolved_chat_id(self) -> None:
+        FakeSchedulaClient.outcome = {"result": "confirmed", "message": "Agendamento confirmado"}
+        FakeWahaClient.fail_chat_ids = {"999888777@lid"}
+        FakeWahaClient.resolved_chat_id = "5511999999999@c.us"
+
+        extracted = _extracted("1", phone="5511999999999")
+        extracted["chat_id"] = "999888777@lid"
+        use_case = await self._run(extracted, _config())
+
+        self.assertEqual(self._sent(), ["Agendamento confirmado"])
+        self.assertEqual(
+            FakeWahaClient.instances[0].sent_calls,
+            [("5511999999999@c.us", "Agendamento confirmado", False)],
+        )
+        self.assertEqual(use_case.messages, [])
 
 
 if __name__ == "__main__":

@@ -245,14 +245,43 @@ async def _handle_reminder_reply(
         chat_id,
         outcome.get("result"),
     )
+    waha_client = WahaClient()
     try:
-        await WahaClient().send_text(
+        await waha_client.send_text(
             session_name=tenant_config.instance_name,
             chat_id=chat_id,
             text=reply_text,
         )
     except Exception:
-        logger.exception("Failed to send reminder reply feedback (chat=%s)", chat_id)
+        logger.exception(
+            "Failed to send reminder reply feedback (tenant=%s, session=%s, chat=%s, phone=%s)",
+            tenant_config.tenant_id,
+            tenant_config.instance_name,
+            chat_id,
+            customer_phone,
+        )
+        try:
+            fallback_chat_id = await waha_client.resolve_chat_id(
+                tenant_config.instance_name, customer_phone
+            )
+            if fallback_chat_id and fallback_chat_id != chat_id:
+                await waha_client.send_text(
+                    session_name=tenant_config.instance_name,
+                    chat_id=fallback_chat_id,
+                    text=reply_text,
+                    simulate_typing=False,
+                )
+                logger.info(
+                    "Reminder reply feedback delivered via fallback chat_id (tenant=%s, fallback_chat=%s)",
+                    tenant_config.tenant_id,
+                    fallback_chat_id,
+                )
+        except Exception:
+            logger.exception(
+                "Fallback reminder reply feedback also failed (tenant=%s, phone=%s)",
+                tenant_config.tenant_id,
+                customer_phone,
+            )
     return True
 
 

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 from urllib.parse import urlparse, urlunparse
 
 import httpx
@@ -107,17 +108,68 @@ class WahaClient:
             await self.stop_typing(session_name, chat_id)
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{base_url}/sendText",
-                headers=headers,
-                json={
-                    "session": session_name,
-                    "chatId": chat_id,
-                    "text": text,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
+            last_exc: Exception | None = None
+            for attempt in range(3):
+                try:
+                    response = await client.post(
+                        f"{base_url}/sendText",
+                        headers=headers,
+                        json={
+                            "session": session_name,
+                            "chatId": chat_id,
+                            "text": text,
+                        },
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPStatusError as exc:
+                    last_exc = exc
+                    status = exc.response.status_code
+                    if status < 500 and status != 429:
+                        raise
+                except (httpx.TimeoutException, httpx.TransportError) as exc:
+                    last_exc = exc
+
+                if attempt < 2:
+                    await asyncio.sleep(0.5 * (attempt + 1))
+
+            assert last_exc is not None
+            raise last_exc
+
+    async def resolve_chat_id(self, session_name: str, phone_number: str) -> str | None:
+        """Resolve o chatId correto no WAHA a partir do telefone do cliente (fallback para @lid/JID inválido)."""
+        digits = re.sub(r"\D", "", str(phone_number or ""))
+        if not digits:
+            return None
+
+        if len(digits) in (10, 11) and not re.fullmatch(r"1[2-9]\d{2}[2-9]\d{6}", digits):
+            digits = f"55{digits}"
+
+        if digits.startswith("55"):
+            try:
+                base_url, api_key = await self._ensure_credentials()
+                headers = {
+                    "X-Api-Key": api_key,
+                    "Accept": "application/json",
+                }
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.get(
+                        f"{base_url}/contacts/check-exists",
+                        headers=headers,
+                        params={"phone": digits, "session": session_name},
+                    )
+                    if 200 <= response.status_code < 300:
+                        data = response.json()
+                        if isinstance(data, dict) and data.get("numberExists") and data.get("chatId"):
+                            return str(data["chatId"])
+            except Exception:
+                logger.debug(
+                    "Failed to resolve chatId via WAHA check-exists (session=%s, phone=%s)",
+                    session_name,
+                    digits,
+                )
+
+        return f"{digits}@c.us"
 
     async def download_media(self, media_url: str) -> tuple[bytes, str]:
         """Baixa arquivo de mídia (ex: áudio) do WAHA aplicando autenticação e limite de tamanho."""
